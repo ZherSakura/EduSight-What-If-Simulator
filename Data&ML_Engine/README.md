@@ -146,5 +146,5 @@ This validates:
 - Risk Engine
 - Recommendation Engine
 - Simulation Engine
-- ML Integration (if model exists)
+- ML Integration
 - End-to-End Pipeline
