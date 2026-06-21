@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>EduSight What-If Simulator</title>
+
+  <link rel="stylesheet" href="style.css" />
+  <link 
+  rel="stylesheet" 
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+/>
+</head>
+
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div>
+        <div class="brand">
+          <h2>EduSight</h2>
+          <p>MOE ADMINISTRATION</p>
+        </div>
+
+        <nav class="nav">
+          <p class="nav-title">MAIN</p>
+
+          <a href="#" class="nav-item">
+            <span>📖</span>
+            National overview
+          </a>
+
+          <a href="#" class="nav-item">
+            <span>🎓</span>
+            School hub
+          </a>
+
+          <a href="#" class="nav-item">
+            <span>👥</span>
+            Teacher view
+          </a>
+
+          <a href="#" class="nav-item">
+            <span>👨‍👩‍👧</span>
+            Student / Parent
+          </a>
+
+          <p class="nav-title">TOOLS</p>
+
+          <a href="#" class="nav-item active">
+            <span>▣</span>
+            What-if simulator
+          </a>
+
+          <a href="#" class="nav-item">
+            <span>☑</span>
+            Intervention tracker
+          </a>
+        </nav>
+      </div>
+
+      <div class="account">
+        <p class="nav-title">ACCOUNT</p>
+
+        <a href="#" class="nav-item">
+          <span>↻</span>
+          Switch role
+        </a>
+
+        <a href="#" class="nav-item">
+          <span>⚙</span>
+          Settings
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main">
+      <!-- Header -->
+      <header class="topbar">
+        <div class="page-title">
+          <span>☷</span>
+          <h1>What-If Simulator</h1>
+        </div>
+
+        <div class="top-actions">
+          <div class="search-box">
+            <input 
+              id="studentSearchInput"
+              type="text" 
+              placeholder="Search student ID..." 
+            />
+            <span class="search-icon">⌕</span>
+          </div>
+
+          <button class="icon-btn">
+            <i class="fa-regular fa-bell"></i>
+          </button>
+
+          <button class="icon-btn">
+            <i class="fa-regular fa-circle-user"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Student Profile Card -->
+      <section class="student-card">
+        <div class="student-left">
+          <div class="student-avatar" id="studentInitials">MA</div>
+
+          <div>
+            <h2 id="studentName">Muhammad Ali bin Faisal</h2>
+
+            <p id="studentInfo">
+              ✥ Form 4 Jujur &nbsp;&nbsp; ⟟ SMK Damansara Utama
+            </p>
+          </div>
+        </div>
+
+        <div class="risk-status">
+          <p>CURRENT RISK LEVEL</p>
+          <span id="currentRiskLevel">▲ High Risk</span>
+        </div>
+      </section>
+
+      <!-- Dashboard Grid -->
+      <section class="dashboard-grid">
+        <!-- Intervention Factors -->
+        <div class="panel intervention-panel">
+          <div class="panel-header">
+            <div>
+              <h3>Intervention Factors</h3>
+            </div>
+
+            <span>Drag to simulate</span>
+          </div>
+
+          <div class="slider-block">
+            <label>
+              📅 Attendance Rate
+              <strong id="attendanceValue">62%</strong>
+            </label>
+
+            <input
+              id="attendance"
+              type="range"
+              min="0"
+              max="100"
+              value="62"
+            />
+
+            <div class="range-labels">
+              <span>0%</span>
+              <span>50%</span>
+              <span>100%</span>
+            </div>
+          </div>
+
+          <div class="slider-block">
+            <label>
+              📚 Academic Grades
+              <strong id="gradesValue">60</strong>
+            </label>
+
+            <input
+              id="grades"
+              type="range"
+              min="20"
+              max="100"
+              value="60"
+            />
+
+            <div class="range-labels">
+              <span>20</span>
+              <span>60</span>
+              <span>100</span>
+            </div>
+          </div>
+
+          <div class="slider-block">
+            <label>
+              ❤️ Counselling Sessions
+              <strong id="counsellingValue">0 Sessions</strong>
+            </label>
+
+            <input
+              id="counselling"
+              type="range"
+              min="0"
+              max="10"
+              value="0"
+            />
+
+            <div class="range-labels">
+              <span>0</span>
+              <span>5</span>
+              <span>10</span>
+            </div>
+          </div>
+
+          <div class="slider-block">
+            <label>
+              💰 Welfare Support
+              <strong id="welfareValue">None</strong>
+            </label>
+
+            <input
+              id="welfare"
+              type="range"
+              min="0"
+              max="2"
+              value="0"
+            />
+
+            <div class="range-labels">
+              <span>None</span>
+              <span>Partial</span>
+              <span>Full</span>
+            </div>
+          </div>
+
+          <button class="reset-btn" onclick="resetSimulation()">
+            ⟳ Reset to current status
+          </button>
+        </div>
+
+        <!-- Projected Risk Score -->
+        <div class="panel risk-score-panel">
+          <div class="panel-header score-header">
+            <h3>Projected Risk Score</h3>
+
+            <span class="score-title-icon">🎯</span>
+          </div>
+
+          <div class="score-box">
+            <div class="score-display">
+              <h2 id="riskScore">89</h2>
+              <span id="scoreBadge">No change</span>
+            </div>
+
+            <p class="risk-level-text" id="projectedRiskText">
+              High Dropout Risk
+            </p>
+
+            <p class="small-text">
+              Projected risk based on simulation
+            </p>
+          </div>
+
+          <div class="score-row">
+            <p>
+              current:<br />
+              <b id="currentScore"></b>
+            </p>
+
+            <p>
+              projected:<br />
+              <b id="projectedScore" class="risk-red">89 - high risk</b>
+            </p>
+          </div>
+
+          <div class="risk-spectrum">
+            <div class="spectrum-top">
+              <span>RISK SPECTRUM</span>
+              <strong id="projectedLabel">PROJECTED : 89</strong>
+            </div>
+
+            <div class="spectrum-bar">
+              <div id="spectrumMarker"></div>
+            </div>
+
+            <div class="spectrum-bottom">
+              <span>No Risk (0)</span>
+              <span>* Current Baseline: 89</span>
+              <span>Critical (100)</span>
+            </div>
+          </div>
+
+          <div class="insight-box">
+            <span class="insight-icon">
+              <svg viewBox="0 0 24 24" fill="none">
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="8.5"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                />
+                <path
+                  d="M8 12.2L10.5 14.7L16 9.3"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </span>
+
+            <p id="insightText">
+              No simulation has been applied yet. Adjust the sliders to generate a projected risk score.
+            </p>
+          </div>
+        </div>
+
+        <!-- Risk Factor Weights -->
+        <div class="panel weights-panel">
+          <div class="panel-header single">
+            <h3>Simulated Risk Factor<br />Weights</h3>
+            <span class="warning-icon">⚠</span>
+          </div>
+
+          <div class="weight-item">
+            <p>
+              Attendance
+              <strong id="attendanceWeightText">45%</strong>
+            </p>
+
+            <div class="weight-bar">
+              <div class="fill attendance" id="attendanceWeightBar"></div>
+            </div>
+          </div>
+
+          <div class="weight-item">
+            <p>
+              Academic Performance
+              <strong id="academicWeightText">29%</strong>
+            </p>
+
+            <div class="weight-bar">
+              <div class="fill academic" id="academicWeightBar"></div>
+            </div>
+          </div>
+
+          <div class="weight-item">
+            <p>
+              Socioeconomic Status
+              <strong id="socioWeightText">13%</strong>
+            </p>
+
+            <div class="weight-bar">
+              <div class="fill socio" id="socioWeightBar"></div>
+            </div>
+          </div>
+
+          <div class="weight-item">
+            <p>
+              Family Support
+              <strong id="familyWeightText">12%</strong>
+            </p>
+
+            <div class="weight-bar">
+              <div class="fill family" id="familyWeightBar"></div>
+            </div>
+          </div>
+
+          <div class="weights-footer">
+            <p>
+              Values represent weighted contribution to the total risk score.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Bottom Panels -->
+      <section class="bottom-grid">
+        <!-- Dropout Probability -->
+        <div class="panel probability-panel">
+
+          <div class="panel-header single">
+            <h3>3-Month Dropout Probability</h3>
+            <span class="probability-icon">⏳</span>
+          </div>
+
+          <div class="probability-row">
+            <strong id="dropoutProbability">90%</strong>
+            <span>likelihood of dropping out</span>
+          </div>
+
+          <div
+            class="probability-message"
+            id="probabilityMessage"
+          >
+            At the ongoing trajectory, Muhammad Ali is at high risk of dropping out within 3 months. Immediate action is recommended.
+          </div>
+        </div>
+
+        <!-- Recommended Steps -->
+        <div class="panel recommendations-panel">
+        <div class="recommend-header">
+          <h3>Recommended Next Steps</h3>
+          <span>Based on simulation</span>
+        </div>
+
+          <div class="recommendation-grid" id="recommendations">
+            <div class="recommend-card red">
+              <span>ⓘ</span>
+              <h4>Target 80%<br />Attendance</h4>
+              <p>
+                Simulation predicts a −12 pt risk reduction at this threshold.
+              </p>
+            </div>
+
+            <div class="recommend-card yellow">
+              <span>▣</span>
+              <h4>Mandatory<br />Tutoring</h4>
+              <p>
+                Required to meet the minimum semester passing threshold.
+              </p>
+            </div>
+
+            <div class="recommend-card blue">
+              <span>♡</span>
+              <h4>Counselling<br />Sessions</h4>
+              <p>
+                3 sessions scheduled this month to improve student engagement.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
