@@ -18,17 +18,16 @@ let defaultInputs = {
   welfare: 0
 };
 
+let riskFactorChart = null;
+
 document.addEventListener("DOMContentLoaded", () => {
   setupSliderListeners();
   setupStudentSearch();
 
-  // Show immediately
-  displayStudentProfile(currentStudent);
-  updateSimulationUI(generateDefaultResult());
-  updateMockRecommendations();
+displayStudentProfile(currentStudent);
 
-  // Fetch silently in background
-  loadStudentData(selectedStudentId);
+updateSimulationUI(generateMockSimulationResult(defaultInputs));
+updateMockRecommendations();
 });
 
 function setupStudentSearch() {
@@ -97,8 +96,9 @@ async function loadStudentData(studentId = selectedStudentId) {
   };
 
   resetSlidersToStudentDefault();
-  updateSimulationUI(generateDefaultResult());
-  updateMockRecommendations();
+  const defaultResult = generateDefaultResult();
+  updateSimulationUI(defaultResult);
+  updateRecommendations(defaultResult);
 }
 
 function resetSlidersToStudentDefault() {
@@ -298,29 +298,6 @@ function normalizeSimulationResult(result) {
   };
 }
 
-function generateDefaultResult() {
-  return {
-    baselineScore: currentStudent.currentScore,
-    projectedScore: currentStudent.currentScore,
-    riskLevel: `${currentStudent.currentRisk.replace("Risk", "Dropout Risk")}`,
-    riskLabel: currentStudent.currentRisk.toLowerCase(),
-    scoreChangeText: "No change",
-    dropoutProbability:
-      currentStudent.currentScore >= 70 ? 90 :
-      currentStudent.currentScore >= 40 ? 55 : 20,
-    probabilityText:
-      "No simulation has been applied yet. Adjust the sliders to generate a projected result.",
-    insightText:
-      "No simulation has been applied yet. Adjust the sliders to generate a projected risk score.",
-    weights: {
-      attendance: 45,
-      academic: 29,
-      socioeconomic: 13,
-      family: 12
-    }
-  };
-}
-
 function updateSimulationUI(result) {
   const score = result.projectedScore;
   const riskColor = getRiskColor(score);
@@ -341,7 +318,9 @@ function updateSimulationUI(result) {
   document.getElementById("spectrumMarker").style.left = `${score}%`;
 
   document.getElementById("dropoutProbability").textContent =
-    `${result.dropoutProbability}%`;
+    result.dropoutProbability === "-"
+      ? "-%"
+      : `${result.dropoutProbability}%`;
 
   document.getElementById("probabilityMessage").textContent =
     result.narrative || result.probabilityText || "";
@@ -353,23 +332,83 @@ function updateSimulationUI(result) {
 }
 
 function updateWeights(weights) {
-  document.getElementById("attendanceWeightText").textContent =
-    `${weights.attendance}%`;
-  document.getElementById("academicWeightText").textContent =
-    `${weights.academic}%`;
-  document.getElementById("socioWeightText").textContent =
-    `${weights.socioeconomic}%`;
-  document.getElementById("familyWeightText").textContent =
-    `${weights.family}%`;
+  const chartData = [
+    weights.attendance ?? 0,
+    weights.academic ?? 0,
+    weights.socioeconomic ?? 0,
+    weights.family ?? 0
+  ];
 
-  document.getElementById("attendanceWeightBar").style.width =
-    `${weights.attendance}%`;
-  document.getElementById("academicWeightBar").style.width =
-    `${weights.academic}%`;
-  document.getElementById("socioWeightBar").style.width =
-    `${weights.socioeconomic}%`;
-  document.getElementById("familyWeightBar").style.width =
-    `${weights.family}%`;
+  const ctx = document.getElementById("riskFactorChart");
+
+  if (!ctx) return;
+
+  if (!riskFactorChart) {
+    riskFactorChart = new Chart(ctx, {
+      type: "bar",
+      plugins: [ChartDataLabels],
+
+      data: {
+        labels: ["Attendance", "Academic", "Socioeconomic", "Family"],
+        datasets: [{
+          label: "Risk Weight (%)",
+          data: chartData,
+          backgroundColor: ["#ff3d3d", "#ffd85c", "#6ca7ff", "#a7f542"],
+          borderWidth: 0,
+          barThickness: 20
+        }]
+      },
+
+      options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+
+        plugins: {
+          legend: { display: false },
+
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return `${context.raw}%`;
+              }
+            }
+          },
+
+          datalabels: {
+            anchor: "end",
+            align: "right",
+            formatter: function(value) {
+              return value + "%";
+            },
+            color: "#374151",
+            font: {
+              size: 12,
+              weight: "bold"
+            }
+          }
+        },
+
+        scales: {
+          x: {
+            beginAtZero: true,
+            max: 100,
+            ticks: {
+              callback: function(value) {
+                return value + "%";
+              }
+            }
+          },
+          y: {
+            grid: { display: false }
+          }
+        }
+      }
+    });
+  } else {
+    riskFactorChart.data.datasets[0].data = chartData;
+    riskFactorChart.update();
+  }
 }
 
 function updateRecommendations(result) {
@@ -393,7 +432,12 @@ function updateRecommendations(result) {
     .slice(0, 3);
 
   if (recommendations.length === 0) {
-    updateMockRecommendations();
+    box.innerHTML = `
+      <div class="empty-recommendation">
+        <h4>No recommendations available.</h4>
+        <p>Run a simulation to generate intervention recommendations.</p>
+      </div>
+    `;
     return;
   }
 
@@ -564,7 +608,11 @@ function resetSimulation() {
   document.getElementById("counselling").value = defaultInputs.counselling;
   document.getElementById("welfare").value = defaultInputs.welfare;
 
-  runSimulation();
+  updateSliderLabels(defaultInputs);
+
+  const defaultResult = generateDefaultResult();
+  updateSimulationUI(defaultResult);
+  updateRecommendations(defaultResult);
 }
 
 function generateMockSimulationResult(inputs) {
@@ -633,5 +681,31 @@ function generateMockSimulationResult(inputs) {
       family: 12
     },
     recommendations: generateMockRecommendations(inputs, score)
+  };
+}
+
+function generateDefaultResult() {
+  return {
+    baselineScore: currentStudent.currentScore,
+    projectedScore: currentStudent.currentScore,
+    riskLevel: `${currentStudent.currentRisk.replace("Risk", "Dropout Risk")}`,
+    riskLabel: currentStudent.currentRisk.toLowerCase(),
+    scoreChangeText: "No change",
+
+    dropoutProbability: "-",
+    probabilityText:
+      "No likelihood of dropping out available. Run a simulation to generate dropout probability.",
+
+    insightText:
+      "No simulation has been applied yet. Adjust the sliders to generate a projected risk score.",
+
+    weights: {
+      attendance: 0,
+      academic: 0,
+      socioeconomic: 0,
+      family: 0
+    },
+
+    recommendations: []
   };
 }
