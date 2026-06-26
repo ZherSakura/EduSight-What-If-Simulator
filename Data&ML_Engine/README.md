@@ -1,6 +1,7 @@
 # EduSight — ML & Quantum Backend
 
 > **Data & ML Developer deliverables**
+
 > Dropout risk prediction, What-If simulation, quantum-optimised intervention planning, and cloud API layer for the EduSight student retention system.
 
 ---
