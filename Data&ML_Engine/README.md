@@ -1,6 +1,6 @@
 # EduSight — ML & Quantum Backend
 
-> **Person 4 — Data & ML Developer deliverables**
+> **Data & ML Developer deliverables**
 > Dropout risk prediction, What-If simulation, quantum-optimised intervention planning, and cloud API layer for the EduSight student retention system.
 
 ---
@@ -63,11 +63,20 @@ final_score = 50% × rule_based  +  30% × ML_score  +  20% × quantum_score
 
 ### 2. Install dependencies
 
-```bash
-pip install scikit-learn pandas numpy joblib openpyxl \
-            pennylane pennylane-lightning \
-            fastapi uvicorn httpx pydantic python-dotenv aiohttp
-```
+Create and activate a virtual environment (recommended):
+python -m venv venv
+
+# Windows (Git Bash)
+source venv/Scripts/activate
+
+# Windows (PowerShell)
+.\venv\Scripts\Activate.ps1
+
+# Linux / macOS
+source venv/bin/activate
+
+Install all required packages:
+pip install -r requirements.txt
 
 ### 3. Configure environment
 
