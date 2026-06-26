@@ -1,70 +1,7 @@
 """
 EduSight — Cloud API Layer
 ============================
-Manages all communication between the Vue.js frontend and the
-cloud-hosted ML/quantum services.  Built with FastAPI.
-
-Responsibilities
-----------------
-  1. Expose REST endpoints consumed by Person 2's Vue components
-  2. Route requests to the correct engine (rule-based / ML / quantum)
-  3. Manage async communication with cloud-hosted ML services
-     (e.g. a remote MLEngine deployed on Azure / GCP / AWS)
-  4. Return structured JSON responses the frontend can render directly
-
-Endpoints
----------
-  GET  /health                       → service health check
-  GET  /students                     → list all students (stub / DB hook)
-  GET  /students/{student_id}        → single student profile
-  POST /simulate                     → run What-If simulation (core feature)
-  POST /simulate/quantum             → quantum-optimised intervention plan
-  POST /ml/predict                   → raw ML risk prediction
-  GET  /ml/model/status              → check if trained model exists on cloud
-  POST /ml/model/train               → trigger model (re)training on cloud
-  GET  /recommendations/{student_id} → get recommendations for a student
-
-Cloud communication
--------------------
-  CloudMLClient handles all outbound HTTP calls to the remote ML service.
-  If the cloud service is unavailable, it falls back to the local engines
-  automatically — the frontend never sees an error, just a flag in the
-  response indicating which mode was used.
-
-  Set the ML service URL in .env:
-      EDUSIGHT_ML_SERVICE_URL=https://your-ml-service.azurewebsites.net
-      EDUSIGHT_API_KEY=your-secret-api-key
-      EDUSIGHT_ENV=production     # or "local"
-
-Running
--------
-  pip install fastapi uvicorn httpx pydantic python-dotenv aiohttp
-
-  Local dev:
-      uvicorn cloud_api:app --reload --port 8000
-
-  Production:
-      uvicorn cloud_api:app --host 0.0.0.0 --port 8000 --workers 4
-
-  Test with curl:
-      curl http://localhost:8000/health
-      curl -X POST http://localhost:8000/simulate \\
-           -H "Content-Type: application/json" \\
-           -d @sample_request.json
-
-Linkage
--------
-  IMPORTS FROM : risk_engine.py           (RiskEngine, StudentProfile, ...)
-                 recommendation_engine.py (RecommendationEngine)
-                 ml_engine.py             (MLEngine)
-                 quantum_engine.py        (QuantumInterventionOptimizer,
-                                           QuantumRiskClassifier,
-                                           get_quantum_risk_score)
-  CALLED BY    : Vue.js frontend (Person 1 / Person 2)
-                 Person 5 Integration & QA (end-to-end tests)
-
-Author : Person 4 — Data & ML Developer
-         (API layer — coordinate with Person 3 for DB integration)
+Manages all communication between the Vue.js frontend and the cloud-hosted ML/quantum services.  Built with FastAPI.
 """
 
 from __future__ import annotations
