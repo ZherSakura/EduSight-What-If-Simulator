@@ -1,3 +1,9 @@
+"""
+EduSight — Machine Learning Engine
+====================================
+Trains a dropout-risk classifier and grade predictor on the UCI Student Performance dataset (Maths.csv / Portuguese.csv).
+"""
+
 from __future__ import annotations
 
 import os
@@ -23,12 +29,6 @@ from sklearn.utils.class_weight import compute_class_weight
 
 warnings.filterwarnings("ignore")
 
-import requests
-
-CLOUD_API_URL = os.getenv(
-    "CLOUD_API_URL",
-    "http://localhost:8000/api/ml"
-)
 
 # ─────────────────────────────────────────────
 #  Constants
@@ -66,6 +66,10 @@ ALL_FEATURE_COLS = NUMERIC_COLS + BINARY_COLS + NOMINAL_COLS
 
 @dataclass
 class MLRiskPrediction:
+    """
+    Single-student ML inference result.
+    Consumed by risk_engine.py to enrich/override the rule-based score.
+    """
     student_id          : str
     dropout_probability : float   # P(G3 == 0)
     atrisk_probability  : float   # P(G3 < 10)
@@ -92,6 +96,14 @@ class ModelMetrics:
 # ─────────────────────────────────────────────
 
 class StudentDataLoader:
+    """
+    Loads one or more CSV/xlsx student performance files,
+    engineers features, and returns a model-ready DataFrame.
+
+    Handles both the 'Maths.csv' and 'Portuguese.csv' datasets.
+    If both are provided they are concatenated with a 'course' column added.
+    """
+
     def load(self, *file_paths: str | Path) -> pd.DataFrame:
         frames = []
         for path in file_paths:
@@ -124,6 +136,10 @@ class StudentDataLoader:
 
     @staticmethod
     def _engineer_features(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Create derived features that improve predictive power.
+        All new columns are prefixed with 'feat_'.
+        """
         # Grade momentum: improvement from G1 to G2
         if "G1" in df.columns and "G2" in df.columns:
             df["feat_grade_momentum"] = df["G2"] - df["G1"]
@@ -168,6 +184,8 @@ class StudentDataLoader:
 # ─────────────────────────────────────────────
 
 class FeatureEncoder:
+    """Label-encodes categorical columns; stores mappings for inference."""
+
     def __init__(self):
         self._encoders: dict[str, LabelEncoder] = {}
         self.feature_names_: list[str] = []
@@ -215,6 +233,30 @@ class FeatureEncoder:
 # ─────────────────────────────────────────────
 
 class MLEngine:
+    """
+    Trains, evaluates, and serves ML predictions for EduSight.
+
+    Three models are trained internally:
+      1. Random Forest         → dropout classifier  (primary)
+      2. Gradient Boosting     → at-risk classifier  (secondary)
+      3. Logistic Regression   → calibrated probability (ensemble blend)
+
+    The final ml_risk_score is a weighted blend:
+      60% × P(at_risk)_GB  +  40% × P(dropout)_RF  → scaled to 0–100
+
+    Usage
+    -----
+    engine = MLEngine()
+    engine.train("Maths.csv")                        # or both CSVs
+    engine.train("Maths.csv", "Portuguese.csv")
+    metrics = engine.evaluate()
+    engine.save()                                    # persist model
+
+    # Later / in production:
+    engine = MLEngine.load()
+    prediction = engine.predict_risk("STU-001", student_row_dict)
+    """
+
     def __init__(self):
         self._loader   = StudentDataLoader()
         self._encoder  = FeatureEncoder()
@@ -233,6 +275,13 @@ class MLEngine:
     # ── public API ──────────────────────────
 
     def train(self, *csv_paths: str | Path) -> "MLEngine":
+        """
+        Load data, encode features, train all models.
+
+        Parameters
+        ----------
+        *csv_paths : one or more paths to Maths.csv / Portuguese.csv
+        """
         print("[EduSight ML] Loading data...")
         df = self._loader.load(*csv_paths)
         print(f"[EduSight ML] Loaded {len(df)} student records, "
@@ -359,6 +408,27 @@ class MLEngine:
         student_id  : str,
         student_data: dict,
     ) -> MLRiskPrediction:
+        """
+        Real-time risk prediction for a single student.
+
+        Parameters
+        ----------
+        student_id   : unique ID string (e.g. "STU-001")
+        student_data : dict mapping column names → values.
+                       Must include all feature columns.
+                       G1 and G2 should be present for best accuracy.
+                       G3 should be omitted (it is the target).
+
+        Returns
+        -------
+        MLRiskPrediction with probabilities and top risk features.
+
+        Integration note for Person 3
+        ------------------------------
+        Call this from POST /simulate after receiving the student
+        profile from GET /students/:id. Map the API response fields
+        to the column names expected here (see NUMERIC_COLS etc.)
+        """
         self._assert_trained()
 
         row = pd.DataFrame([student_data])
@@ -401,38 +471,15 @@ class MLEngine:
             confidence          = confidence,
         )
 
-
-    def predict_risk_cloud(
-        self,
-        student_id: str,
-        student_data: dict,
-    ) -> dict | None:
-
-        payload = {
-            "student_id": student_id,
-            "student_data": student_data,
-        }
-
-        try:
-            response = requests.post(
-                f"{CLOUD_API_URL}/predict",
-                json=payload,
-                timeout=10,
-            )
-
-            response.raise_for_status()
-
-            return response.json()
-
-        except requests.RequestException as e:
-            print(f"[Cloud ML] API Error: {e}")
-            return None
-    
     def predict_batch(
         self,
         students: list[dict],
         id_col  : str = "student_id",
     ) -> list[MLRiskPrediction]:
+        """
+        Bulk prediction — e.g. score an entire class or school.
+        students is a list of dicts, each with the same keys as predict_risk.
+        """
         self._assert_trained()
         results = []
         for s in students:
@@ -490,6 +537,11 @@ class MLEngine:
         return base + engineered
 
     def _top_features(self, x_row: np.ndarray, n: int = 5) -> list[tuple[str, float]]:
+        """
+        Approximate per-sample feature importance.
+        Score = global_importance × |z-score deviation from mean|.
+        Returns top-n (feature_name, contribution_score) pairs.
+        """
         global_imp = self._rf_dropout.feature_importances_
         contributions = global_imp * np.abs(x_row)
         top_idx = contributions.argsort()[::-1][:n]
@@ -515,6 +567,29 @@ def ml_risk_to_student_profile_override(
     rule_based_score: float,
     blend_weight    : float = 0.45,
 ) -> float:
+    """
+    Blend ML risk score with the rule-based score from risk_engine.py.
+
+    The blended score replaces 'total_score' in RiskScore when ML
+    predictions are available. This gives the best of both worlds:
+      - ML captures patterns in historical data (non-linear interactions)
+      - Rule-based engine incorporates real-time slider adjustments
+
+    Formula
+    -------
+      final = (1 - w) × rule_based  +  w × ml_risk
+      default w = 0.45
+
+    Parameters
+    ----------
+    ml_pred          : output of MLEngine.predict_risk()
+    rule_based_score : RiskScore.total_score from RiskEngine.score()
+    blend_weight     : how much weight to give the ML model (0–1)
+
+    Returns
+    -------
+    Blended risk score (0–100), rounded to 1 dp.
+    """
     blended = (1 - blend_weight) * rule_based_score + blend_weight * ml_pred.ml_risk_score
     return round(max(1.0, min(99.0, blended)), 1)
 
