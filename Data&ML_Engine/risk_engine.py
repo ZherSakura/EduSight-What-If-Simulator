@@ -1,3 +1,13 @@
+"""
+EduSight — Risk Prediction Engine
+==================================
+Handles:
+  - Student dropout risk scoring  (rule-based, weighted)
+  - What-If simulation logic
+  - 3/6-month dropout probability forecasting
+  - ML score blending via ml_engine.MLEngine
+"""
+
 from __future__ import annotations
 
 import math
@@ -6,14 +16,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional
 
-import requests
-import os
 
-CLOUD_RISK_API = os.getenv(
-    "CLOUD_RISK_API",
-    "http://localhost:8000/api/risk"
-)
-
+# ── lazy ML import so risk_engine works even without a trained model ──────────
 def _try_load_ml(model_path: Optional[str]):
     """
     Attempt to load a trained MLEngine from disk.
@@ -58,6 +62,22 @@ class Trend(str, Enum):
 
 @dataclass
 class StudentProfile:
+    """
+    Core student data consumed by the risk engine.
+
+    Fields
+    ------
+    student_id      : unique identifier (maps to GET /students/:id)
+    name            : display name
+    grade           : e.g. "Form 4"
+    attendance_rate : percentage 0–100  (from e-Kehadiran)
+    academic_score  : percentage 0–100  (from PBD / UASA)
+    socio_score     : 0–100; higher = more disadvantaged
+    family_support  : 0–100; higher = stronger support
+    trend           : historical trajectory over last 3 months
+    ml_data         : optional raw CSV-column dict for ML inference
+                      e.g. {"G1": 5, "G2": 4, "absences": 18, ...}
+    """
     student_id     : str
     name           : str
     grade          : str
@@ -128,6 +148,23 @@ ML_BLEND_WEIGHT: float = 0.40
 # ─────────────────────────────────────────────
 
 class RiskEngine:
+    """
+    Computes dropout risk scores and What-If simulations.
+
+    ML integration
+    --------------
+    Pass ml_model_path to activate ML blending:
+
+        engine = RiskEngine(ml_model_path="edusight_ml_model.joblib")
+
+    When a trained model is found AND the student has ml_data populated,
+    the final score is:
+        score = (1 - ML_BLEND_WEIGHT) × rule_score
+              +      ML_BLEND_WEIGHT  × ml_score
+
+    If no model file exists, engine runs in pure rule-based mode.
+    """
+
     def __init__(
         self,
         weights       : Optional[dict] = None,
@@ -180,38 +217,6 @@ class RiskEngine:
             ml_enhanced     = ml_enhanced,
         )
 
-    def score_from_cloud(self, student: StudentProfile):
-        payload = {
-            "student_id": student.student_id,
-            "name": student.name,
-            "grade": student.grade,
-            "attendance_rate": student.attendance_rate,
-            "academic_score": student.academic_score,
-            "socio_score": student.socio_score,
-            "family_support": student.family_support,
-            "trend": student.trend.value,
-            "ml_data": student.ml_data,
-        }
-
-        try:
-            response = requests.post(
-                f"{CLOUD_RISK_API}/score",
-                json=payload,
-                timeout=10,
-            )
-
-            response.raise_for_status()
-
-            return response.json()
-
-        except requests.RequestException as e:
-            print(f"[Cloud Risk API] {e}")
-
-            return {
-                "success": False,
-                "error": str(e),
-            }
-    
     def simulate(self, student: StudentProfile, inputs: SimulationInput) -> SimulationResult:
         """Apply intervention deltas and return the projected risk."""
         baseline_risk  = self.score(student)
@@ -258,51 +263,6 @@ class RiskEngine:
                 baseline_3m, projected_3m, inputs),
         )
 
-    def simulate_from_cloud(
-        self,
-        student: StudentProfile,
-        inputs: SimulationInput,
-    ):
-
-        payload = {
-            "student": {
-                "student_id": student.student_id,
-                "name": student.name,
-                "grade": student.grade,
-                "attendance_rate": student.attendance_rate,
-                "academic_score": student.academic_score,
-                "socio_score": student.socio_score,
-                "family_support": student.family_support,
-                "trend": student.trend.value,
-                "ml_data": student.ml_data,
-            },
-            "simulation": {
-                "attendance_boost": inputs.attendance_boost,
-                "academic_boost": inputs.academic_boost,
-                "counselling_sessions": inputs.counselling_sessions,
-                "welfare_support": inputs.welfare_support,
-            },
-        }
-
-        try:
-            response = requests.post(
-                f"{CLOUD_RISK_API}/simulate",
-                json=payload,
-                timeout=10,
-            )
-
-            response.raise_for_status()
-
-            return response.json()
-
-        except requests.RequestException as e:
-            print(f"[Cloud Simulation API] {e}")
-
-            return {
-                "success": False,
-                "error": str(e),
-            }
-    
     # ── private helpers ──────────────────────
 
     def _validate_weights(self) -> None:
