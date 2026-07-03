@@ -9,7 +9,7 @@
 services:
   cloud_api:
     build:
-      context: "./Data&ML_Engine"
+      context: "./Data_ML_Engine"
       dockerfile: Dockerfile
     container_name: edusight_cloud_api
     restart: unless-stopped

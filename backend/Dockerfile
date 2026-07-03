@@ -9,8 +9,8 @@ RUN pip install --no-cache-dir -r /app/backend/requirements.txt
 
 COPY backend/ /app/backend/
 
-COPY ["Data&ML_Engine/risk_engine.py", "/app/Data&ML_Engine/risk_engine.py"]
-COPY ["Data&ML_Engine/recommendation_engine.py", "/app/Data&ML_Engine/recommendation_engine.py"]
+COPY ["Data_ML_Engine/risk_engine.py", "/app/Data_ML_Engine/risk_engine.py"]
+COPY ["Data_ML_Engine/recommendation_engine.py", "/app/Data_ML_Engine/recommendation_engine.py"]
 
 WORKDIR /app/backend
 

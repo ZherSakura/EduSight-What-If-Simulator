@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
 
-_ML_ENGINE_DIR = Path(__file__).resolve().parent.parent / "Data&ML_Engine"
+_ML_ENGINE_DIR = Path(__file__).resolve().parent.parent / "Data_ML_Engine"
 if _ML_ENGINE_DIR.is_dir() and str(_ML_ENGINE_DIR) not in sys.path:
     sys.path.insert(0, str(_ML_ENGINE_DIR))
 
