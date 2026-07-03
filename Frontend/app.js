@@ -1,4 +1,9 @@
-const API_BASE_URL = "http://localhost:8000";
+// Local dev (docker compose / http.server) talks to the local backend;
+// the deployed site talks to the Render backend.
+const API_BASE_URL =
+  ["localhost", "127.0.0.1"].includes(window.location.hostname)
+    ? "http://localhost:8000"
+    : "https://edusight-backend-s2oa.onrender.com";
 
 let selectedStudentId = "STU-0001";
 
