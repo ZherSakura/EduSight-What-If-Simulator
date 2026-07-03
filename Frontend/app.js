@@ -261,7 +261,6 @@ function setupSpeech() {
   if (!("speechSynthesis" in window)) return;
 
   loadVoices();
-  // Chrome loads voices asynchronously — reload when they arrive.
   if (typeof speechSynthesis.onvoiceschanged !== "undefined") {
     speechSynthesis.onvoiceschanged = loadVoices;
   }
@@ -274,7 +273,6 @@ function loadVoices() {
 }
 
 function pickFemaleVoice() {
-  // Match common female-voice names across Windows / macOS / Chrome-cloud.
   const femaleIdx = availableVoices.findIndex(v =>
     /zira|female|samantha|karen|serena|susan|victoria|allison|kate|tessa|moira/i.test(v.name)
   );
